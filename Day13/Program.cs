@@ -29,6 +29,27 @@ namespace Day13
             Console.Write("Path: {0}", realPath.Count);
             Console.ReadLine();
 
+            // part2
+            // poor mans solution: test if path exist to all in [0..50, 0..50]
+            var count = 1; // path to self has length nul, but counts as visitable location.
+            for (int x = 0; x <= 51; x++)
+            {
+                for (int y = 0; y <= 51 - x; y++)
+                {
+                    Console.SetCursorPosition(0, 0);
+                    Console.WriteLine("Part 2: Paths: {0}, checking: {1},{2}", count,x,y);
+                    Maze part2 = new Maze(1352, new Point(1, 1), new Point(x, y));
+                    var path2 = part2.FindPath();
+                    if (path2.Count > 0 && path2.Count <= 50)
+                    {
+                        count++;
+                    }
+                        
+                }
+            }
+            Console.ReadLine();
+            
+
         }
 
         static void printPath(List<Point> path)
@@ -47,10 +68,12 @@ namespace Day13
     {
 
         int s;
-        Node startNode;
+        public Node startNode;
         Node endNode;
         Node[,] nodes = new Node[100, 100]; // max? replace with endless storage.
         Point goal;
+
+
         public Maze(int seed, Point start, Point end)
         {
             goal = end;
@@ -83,7 +106,7 @@ namespace Day13
         }
 
 
-        private void printPathToNode(Node n)
+        public void printPathToNode(Node n)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             var current = n;
@@ -154,10 +177,13 @@ namespace Day13
             return !even;
         }
 
-        private bool Search(Node currentNode)
+        public bool Search(Node currentNode)
         {
-            printPathToNode(currentNode);
+             // printPathToNode(currentNode);
             //printNodes(10,10);
+            if (!currentNode.IsWalkable)
+                return false;
+
             List<Node> nextNodes = GetAdjacentValidNodes(currentNode);
             nextNodes.Sort((node1, node2) => node1.F.CompareTo(node2.F));
             foreach (var nextNode in nextNodes)
