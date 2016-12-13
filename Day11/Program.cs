@@ -10,27 +10,20 @@ namespace Day11
     {
         static void Main(string[] args)
         {
-            //var rtg = new RTG();
-            //rtg.states.Add(new ExampleState(1,   1, 1, 2, 3));
-            //rtg.solve();
-
-            //var rtgDay11 = new RTG();
-            //rtgDay11.states.Add(new RealState(1,   1, 1, 2, 1, 2, 1, 3, 3, 3, 3));
-            //rtgDay11.solve();
-
             var rtg = new RTG();
-            var start = new State(1, new int[] { 2 + 1 * 16, 3 + 1 * 16 });
-            //var start = new State(1, new int[] { 1 + 1 * 16, 1 + 2 * 16, 1 + 2 * 16});
+            // Example
+            //var start = new State(1, new int[] { 2 + 1 * 16, 3 + 1 * 16 });
+            // First star
             //var start = new State(1, new int[] { 1 + 1 * 16, 1 + 2 * 16, 1 + 2 * 16, 3 + 3 * 16, 3 + 3 * 16 });
-            start.print();
-            Console.ReadLine();
+            // Second star
+            var start = new State(1, new int[] { 1 + 1 * 16, 1 + 2 * 16, 1 + 2 * 16, 3 + 3 * 16, 3 + 3 * 16, 1+1*16, 1+1*16 });
             rtg.states.Add(start);
             rtg.solve();
             Console.ReadLine();
 
-            // combinations in array, one int per combination
-            // Genertors: 1,2,3,4
-            // Chips:     16, 17, 18,19   (1+0xf);
+            // combinations in array, store level of generator and chip in one int.
+            // Genertors coded with : 1,2,3,4
+            // Chips     coded with : 16, 17, 18,19   (1+0xf);
         }
     }
 
@@ -38,17 +31,11 @@ namespace Day11
     public class RTG
     {
         public List<State> states = new List<State>();
-        List<State> visitedStates = new List<State>();
-
-        public RTG()
-        {
-        }
+        HashSet<State> seen = new HashSet<State>();
 
         public void solve()
         {
-
             int steps = 0;
-
             while (true)
             {
                 steps++;
@@ -58,11 +45,7 @@ namespace Day11
                 // Move all states to visited states
                 foreach (var state in states)
                 {
-                    // check in current state
-                    visitedStates.Add(state);
-                    Console.SetCursorPosition(0, 0);
-                    state.print();
-
+                    seen.Add(state);
                     IEnumerable<State> newStates = state.GenerateNewStates();
 
                     // Check states
@@ -78,19 +61,12 @@ namespace Day11
 
                         if (ns.isValid()) // new state is valid
                         {
-                            if (!visitedStates.Contains(ns))
+                            if (!seen.Contains(ns))
                             { // and not visited before.
-                                Console.SetCursorPosition(0, 7);
-                                ns.print();
-                                validNewStates.Add(ns);
-                                Console.ReadLine();
-                            }
-                            else
-                            {
-                                //nnop
+                                if (!validNewStates.Contains(ns)) // Don't add states double to check list!
+                                    validNewStates.Add(ns);
                             }
                         }
-
                     }
                 }
 
@@ -102,7 +78,7 @@ namespace Day11
                 }
 
                 System.Console.SetCursorPosition(0, 15);
-                Console.WriteLine("Steps: {0}, Visited: {1},   States to check: {2}", steps,visitedStates.Count(), states.Count());
+                Console.WriteLine("Steps: {0}, Visited: {1},   States to check: {2}", steps,seen.Count(), states.Count());
             }
         }
 
@@ -145,6 +121,17 @@ namespace Day11
             }
             Console.WriteLine("Valid: {0}  Done: {1}, State: {2}", isValid(), isDone(), String.Join(",", items));
 
+        }
+
+        public override int GetHashCode()
+        {
+            int value = 0;
+            for (int i = 0; i < items.Length; i++)
+            {
+                value += items[i]*i*0x50;
+            }
+            value += e * (items.Length * 0x50);
+            return value;
         }
 
         public bool isValid()
