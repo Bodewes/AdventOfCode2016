@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Day14
@@ -34,8 +36,8 @@ namespace Day14
     {
         string seed;
         int keystrech = 0;
-        Item[] cache = new Item[100000];
-        MD5 md5 = MD5.Create();
+        volatile Item[] cache = new Item[25000];
+        
 
         public OneTimePad(string s)
         {
@@ -51,11 +53,18 @@ namespace Day14
         public void generateHashes(int limit)
         {
             // first 1000
-            for (int i = 0; i < 1000; i++)
+            //generate(1000, 0);
+            List<Thread> t = new List<Thread>();
+            for (int i = 0; i < 8; i++)
             {
-                createItem(i, seed);
-                //Console.WriteLine("[" + i + "]>  " + cache[i].ToString());
+                var start = i * 3000;
+                t.Add(new Thread(() => generate(3000,start)));
+                t[i].Start();
             }
+
+            // wait on all threads.
+            foreach (Thread thread in t)
+                    { thread.Join(); }
 
             int count = 0;
             int index = 0;
@@ -70,38 +79,57 @@ namespace Day14
             
         }
 
+        public void generate(int count, int start)
+        {
+            Console.WriteLine("Creating {0} from {1}", count, start);
+            using (MD5 md5 = MD5.Create())
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    createItem(i+start, seed, md5);
+                }
+            }
+            Console.WriteLine("Done {0}", start);
+        }
+
         public bool isValid(int index)
         {
-
-            for (int i = index + 1; i < index + 1 + 1000; i++)
+            using (MD5 md5 = MD5.Create())
             {
-                if (cache[i] == null)
-                    createItem(i, seed);
-                if (cache[i]._5.Contains(cache[index]._3))
-                    return true;
+                for (int i = index + 1; i < index + 1 + 1000; i++)
+                {
+                    if (cache[i] == null)
+                        createItem(i, seed, md5);
+                    if (cache[i]._5.Contains(cache[index]._3))
+                        return true;
+                }
             }
             return false;
         }
 
-        private string makeHash(string input)
+        private string makeHash(string input, MD5 md5)
         {
-            byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
-            byte[] hash = md5.ComputeHash(inputBytes);
 
-            return string.Concat(hash.Select(x => x.ToString("x2")));
-            //StringBuilder sb = new StringBuilder();
-            //foreach (byte b in hash)
-            //    sb.Append(b.ToString("x2"));
-            //return sb.ToString();
+                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+                byte[] hash = md5.ComputeHash(inputBytes);
+
+                //return string.Concat(hash.Select(x => x.ToString("x2")));
+
+                //StringBuilder sb = new StringBuilder();
+                //foreach (byte b in hash)
+                //    sb.Append(b.ToString("x2"));
+                //return sb.ToString();
+                return Helper.ByteArrayToHexViaLookup32UnsafeDirect(hash);
+
         }
 
-        public void createItem(int index, string seed){
-            string hash = makeHash(seed + index);
+        public void createItem(int index, string seed, MD5 md5){
+            string hash = makeHash(seed + index, md5);
             
             //used in part 2
             if (keystrech > 0)
             {
-                hash = longHash(hash);
+                hash = longHash(hash, md5);
                 //Console.WriteLine("S: {0} => {1}", index, hash);
                 //Console.ReadLine();
             }
@@ -126,16 +154,71 @@ namespace Day14
             cache[index] =item;
         }
 
-        private string longHash(string hash)
+        private string longHash(string hash, MD5 md5)
         {
             for (int k = 0; k < keystrech; k++)
             {
-                hash = makeHash(hash);
+                hash = makeHash(hash, md5);
             }
             return hash;
         }
 
+
+
     }
+
+    public unsafe static class Helper
+    {
+        private static readonly uint[] _lookup32Unsafe = CreateLookup32Unsafe();
+        private static readonly uint* _lookup32UnsafeP = (uint*)GCHandle.Alloc(_lookup32Unsafe, GCHandleType.Pinned).AddrOfPinnedObject();
+
+        private static uint[] CreateLookup32Unsafe()
+        {
+            var result = new uint[256];
+            for (int i = 0; i < 256; i++)
+            {
+                string s = i.ToString("x2");
+                if (BitConverter.IsLittleEndian)
+                    result[i] = ((uint)s[0]) + ((uint)s[1] << 16);
+                else
+                    result[i] = ((uint)s[1]) + ((uint)s[0] << 16);
+            }
+            return result;
+        }
+
+        public static string ByteArrayToHexViaLookup32Unsafe(byte[] bytes)
+        {
+            var lookupP = _lookup32UnsafeP;
+            var result = new char[bytes.Length * 2];
+            fixed (byte* bytesP = bytes)
+            fixed (char* resultP = result)
+            {
+                uint* resultP2 = (uint*)resultP;
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    resultP2[i] = lookupP[bytesP[i]];
+                }
+            }
+            return new string(result);
+        }
+
+        public static string ByteArrayToHexViaLookup32UnsafeDirect(byte[] bytes)
+        {
+            var lookupP = _lookup32UnsafeP;
+            var result = new string((char)0, bytes.Length * 2);
+            fixed (byte* bytesP = bytes)
+            fixed (char* resultP = result)
+            {
+                uint* resultP2 = (uint*)resultP;
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    resultP2[i] = lookupP[bytesP[i]];
+                }
+            }
+            return result;
+        }
+    }
+
 
     public class Item{
         public string Hash { get; set; }
