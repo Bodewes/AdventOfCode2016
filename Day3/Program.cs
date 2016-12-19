@@ -10,8 +10,57 @@ namespace Day3
     {
         static void Main(string[] args)
         {
-            System.Console.WriteLine(new Triangle().countPossibleTriangle(" 5 10     25"));
-            System.Console.WriteLine(new Triangle().countPossibleTriangle(@"  541  588  421
+            System.Console.WriteLine(new Triangle().countPossibleTriangle(Input.Test));
+            System.Console.WriteLine(new Triangle().countPossibleTriangle(Input.Part1));
+
+            System.Console.ReadLine();
+        }
+    }
+
+
+
+
+    public class Triangle
+    {
+
+        public int countPossibleTriangle(string input)
+        {
+            var count = 0;
+            var lines = input.Split('\n');
+
+            if (lines.Count() % 3 != 0) return -1;
+            for (var i = 0; i < lines.Count(); i += 3)
+            {
+                var lineA = lines[i].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries); ;
+                var lineB = lines[i + 1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries); ;
+                var lineC = lines[i + 2].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries); ;
+
+                if (testTriangle(int.Parse(lineA[0]), int.Parse(lineB[0]), int.Parse(lineC[0])))
+                    count++;
+                if (testTriangle(int.Parse(lineA[1]), int.Parse(lineB[1]), int.Parse(lineC[1])))
+                    count++;
+                if (testTriangle(int.Parse(lineA[2]), int.Parse(lineB[2]), int.Parse(lineC[2])))
+                    count++;
+            }
+
+            return count;
+        }
+
+        private bool testTriangle(int A, int B, int C)
+        {
+            var min = Math.Min(A, Math.Min(B, C));
+            var max = Math.Max(A, Math.Max(B, C));
+            var middle = A + B + C - min - max;
+
+            return min + middle > max;
+
+        }
+    }
+
+    public static class Input
+    {
+        public const string Test = " 5 10     25";
+        public const string Part1 = @"541  588  421
   827  272  126
   660  514  367
    39  703  839
@@ -1921,45 +1970,6 @@ namespace Day3
   957  170  454
   466   88  293
    40  813  103
-  436  766  254"));
-            System.Console.ReadLine();
-        }
-    }
-
-    public class Triangle
-    {
-
-        public int countPossibleTriangle(string input)
-        {
-            var count = 0;
-            var lines = input.Split('\n');
-
-            if (lines.Count() % 3 != 0) return -1;
-            for (var i = 0; i < lines.Count(); i += 3)
-            {
-                var lineA = lines[i].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);;
-                var lineB = lines[i + 1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);;
-                var lineC = lines[i + 2].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);;
-
-                if (testTriangle(int.Parse(lineA[0]), int.Parse(lineB[0]), int.Parse(lineC[0])))
-                        count++;
-                if (testTriangle(int.Parse(lineA[1]), int.Parse(lineB[1]), int.Parse(lineC[1])))
-                    count++;
-                if (testTriangle(int.Parse(lineA[2]), int.Parse(lineB[2]), int.Parse(lineC[2])))
-                    count++;
-            }
-
-            return count;
-        }
-
-        private bool testTriangle(int A, int B, int C)
-        {
-            var min = Math.Min(A, Math.Min(B, C));
-            var max = Math.Max(A, Math.Max(B, C));
-            var middle = A + B + C - min - max;
-
-            return min + middle > max;
-
-        }
+  436  766  254";
     }
 }
